@@ -1,0 +1,28 @@
+<?php
+require_once __DIR__ . '/config/app.php';
+require_login();
+$pageTitle = 'Dashboard';
+$pdo = db();
+$counts = [];
+foreach (['farmers'=>'Farmers','farms'=>'Farms','crops'=>'Crops','plantings'=>'Planting records','harvests'=>'Harvest records'] as $table=>$label) {
+    $counts[$table] = (int)$pdo->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
+}
+$quantity = (float)$pdo->query("SELECT COALESCE(SUM(quantity_kg),0) FROM harvests")->fetchColumn();
+$revenue = (float)$pdo->query("SELECT COALESCE(SUM(quantity_kg * selling_price_per_kg),0) FROM harvests")->fetchColumn();
+$statuses = $pdo->query("SELECT ps.status_name, COUNT(p.planting_id) AS total FROM planting_statuses ps LEFT JOIN plantings p ON p.status_id=ps.status_id GROUP BY ps.status_id,ps.status_name ORDER BY ps.status_id")->fetchAll();
+$recentPlantings = $pdo->query("SELECT p.planting_id,p.planting_date,f.farm_name,c.crop_name,ps.status_name FROM plantings p JOIN farms f USING(farm_id) JOIN crops c USING(crop_id) JOIN planting_statuses ps USING(status_id) ORDER BY p.planting_date DESC,p.planting_id DESC LIMIT 6")->fetchAll();
+$recentHarvests = $pdo->query("SELECT h.harvest_date,h.quantity_kg,c.crop_name,f.farm_name FROM harvests h JOIN plantings p USING(planting_id) JOIN crops c USING(crop_id) JOIN farms f USING(farm_id) ORDER BY h.harvest_date DESC,h.harvest_id DESC LIMIT 5")->fetchAll();
+require __DIR__ . '/includes/header.php';
+?>
+<div class="d-flex justify-content-between align-items-end mb-4"><div><div class="muted small">A clear view of your agricultural operations.</div></div><a class="btn btn-primary" href="module.php?m=plantings&action=create"><i class="bi bi-plus-lg me-1"></i> New planting</a></div>
+<div class="row g-3 mb-4">
+<?php $cards=[['farmers','Total farmers','bi-people'],['farms','Total farms','bi-house'],['crops','Crop varieties','bi-flower2'],['plantings','Planting records','bi-calendar2-week'],['harvests','Harvest records','bi-basket']]; foreach($cards as [$key,$label,$icon]): ?>
+<div class="col-6 col-xl"><div class="stat-card"><div class="stat-top"><span><?= e($label) ?></span><span class="stat-icon"><i class="bi <?= e($icon) ?>"></i></span></div><div class="stat-value"><?= number_format($counts[$key]) ?></div><div class="stat-foot">Live database total</div></div></div>
+<?php endforeach; ?>
+</div>
+<div class="row g-3 mb-3"><div class="col-md-6"><div class="stat-card"><div class="stat-top">Total harvested quantity <span class="stat-icon"><i class="bi bi-box-seam"></i></span></div><div class="stat-value"><?= number_format($quantity,2) ?><small class="fs-6 muted ms-1">kg</small></div><div class="stat-foot">All recorded harvest transactions</div></div></div><div class="col-md-6"><div class="stat-card"><div class="stat-top">Estimated harvest value <span class="stat-icon"><i class="bi bi-cash-coin"></i></span></div><div class="stat-value">₱<?= number_format($revenue,2) ?></div><div class="stat-foot">Quantity multiplied by selling price per kg</div></div></div></div>
+<div class="row g-3"><div class="col-lg-5"><section class="panel h-100"><div class="panel-head"><div><div class="section-title">Planting status</div><div class="muted small">Records grouped by current status</div></div></div>
+<?php $max=max(1,...array_map(fn($x)=>(int)$x['total'],$statuses)); foreach($statuses as $s): ?><div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span><?= e($s['status_name']) ?></span><strong><?= (int)$s['total'] ?></strong></div><div class="progress" style="height:7px"><div class="progress-bar" role="progressbar" style="width:<?= ((int)$s['total']/$max)*100 ?>%;background:#347b54" aria-valuenow="<?= (int)$s['total'] ?>" aria-valuemin="0" aria-valuemax="<?= $max ?>"></div></div></div><?php endforeach; ?>
+</section></div><div class="col-lg-7"><section class="panel h-100"><div class="panel-head"><div><div class="section-title">Recent planting records</div><div class="muted small">Latest activity recorded in the system</div></div><a class="small text-success text-decoration-none" href="module.php?m=plantings">View all <i class="bi bi-arrow-right"></i></a></div><div class="table-responsive"><table class="table"><thead><tr><th>Crop / Farm</th><th>Planting date</th><th>Status</th></tr></thead><tbody><?php foreach($recentPlantings as $r): ?><tr><td><strong><?= e($r['crop_name']) ?></strong><div class="muted small"><?= e($r['farm_name']) ?></div></td><td><?= e($r['planting_date']) ?></td><td><span class="badge-soft"><?= e($r['status_name']) ?></span></td></tr><?php endforeach; if(!$recentPlantings): ?><tr><td colspan="3" class="empty-state">No planting records yet.</td></tr><?php endif; ?></tbody></table></div></section></div></div>
+<div class="row mt-1"><div class="col-12"><section class="panel"><div class="panel-head"><div><div class="section-title">Recent harvests</div><div class="muted small">Most recently recorded harvest transactions</div></div><a class="small text-success text-decoration-none" href="module.php?m=harvests">View all <i class="bi bi-arrow-right"></i></a></div><div class="table-responsive"><table class="table"><thead><tr><th>Crop</th><th>Farm</th><th>Harvest date</th><th class="text-end">Quantity</th></tr></thead><tbody><?php foreach($recentHarvests as $r): ?><tr><td><?= e($r['crop_name']) ?></td><td><?= e($r['farm_name']) ?></td><td><?= e($r['harvest_date']) ?></td><td class="text-end"><?= number_format((float)$r['quantity_kg'],2) ?> kg</td></tr><?php endforeach; if(!$recentHarvests): ?><tr><td colspan="4" class="empty-state">No harvest records yet.</td></tr><?php endif; ?></tbody></table></div></section></div></div>
+<?php require __DIR__ . '/includes/footer.php'; ?>
