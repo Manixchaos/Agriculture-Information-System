@@ -1,17 +1,51 @@
 <?php
 require_once __DIR__ . '/config/app.php';
 require_login();
-$pdo=db(); $pageTitle='Agricultural reports';
-$from=$_GET['from']??date('Y-01-01'); $to=$_GET['to']??date('Y-m-d');
-if(!validate_date($from))$from=date('Y-01-01'); if(!validate_date($to))$to=date('Y-m-d');
-$farms=$pdo->query("SELECT f.farm_name,CONCAT(fr.first_name,' ',fr.last_name) farmer_name,f.location,f.area_hectares,COUNT(DISTINCT p.planting_id) planting_count FROM farms f JOIN farmers fr USING(farmer_id) LEFT JOIN plantings p USING(farm_id) GROUP BY f.farm_id,fr.farmer_id ORDER BY f.farm_name")->fetchAll();
-$plantings=$pdo->prepare("SELECT ps.status_name,COUNT(*) total FROM plantings p JOIN planting_statuses ps USING(status_id) WHERE p.planting_date BETWEEN :f AND :t GROUP BY ps.status_name ORDER BY ps.status_name"); $plantings->execute(['f'=>$from,'t'=>$to]); $statusRows=$plantings->fetchAll();
-$harvest=$pdo->prepare("SELECT h.harvest_date,c.crop_name,f.farm_name,h.quantity_kg,h.selling_price_per_kg,(h.quantity_kg*h.selling_price_per_kg) estimated_value,q.grade_name,hr.remark_description FROM harvests h JOIN plantings p USING(planting_id) JOIN farms f USING(farm_id) JOIN crops c USING(crop_id) LEFT JOIN quality_grades q USING(grade_id) LEFT JOIN harvest_remarks hr USING(remark_id) WHERE h.harvest_date BETWEEN :f AND :t ORDER BY h.harvest_date DESC"); $harvest->execute(['f'=>$from,'t'=>$to]); $harvestRows=$harvest->fetchAll();
-$totalQty=array_sum(array_map(fn($r)=>(float)$r['quantity_kg'],$harvestRows)); $totalValue=array_sum(array_map(fn($r)=>(float)$r['estimated_value'],$harvestRows));
-require __DIR__.'/includes/header.php';
+$pdo = db(); $pageTitle = 'Agricultural reports';
+$from = $_GET['from'] ?? date('Y-01-01'); $to = $_GET['to'] ?? date('Y-m-d');
+if (!validate_date($from)) $from = date('Y-01-01');
+if (!validate_date($to)) $to = date('Y-m-d');
+$swapped = false;
+if ($from > $to) { [$from, $to] = [$to, $from]; $swapped = true; }
+
+// Farmers and their farms (all farms, with planting counts inside the date range)
+$farmsStmt = $pdo->prepare("SELECT f.farm_name, CONCAT(fr.first_name,' ',fr.last_name) farmer_name, f.location, f.area_hectares, COUNT(DISTINCT p.planting_id) planting_count
+    FROM farms f JOIN farmers fr ON fr.farmer_id=f.farmer_id
+    LEFT JOIN plantings p ON p.farm_id=f.farm_id AND p.planting_date BETWEEN :f AND :t
+    GROUP BY f.farm_id, fr.farmer_id ORDER BY f.farm_name");
+$farmsStmt->execute(['f' => $from, 't' => $to]); $farms = $farmsStmt->fetchAll();
+
+// Crops planted per farm
+$cropsStmt = $pdo->prepare("SELECT f.farm_name, CONCAT(fr.first_name,' ',fr.last_name) farmer_name, c.crop_name, c.variety,
+        COUNT(p.planting_id) planting_count, SUM(p.area_planted) total_area
+    FROM plantings p JOIN farms f ON f.farm_id=p.farm_id JOIN farmers fr ON fr.farmer_id=f.farmer_id JOIN crops c ON c.crop_id=p.crop_id
+    WHERE p.planting_date BETWEEN :f AND :t
+    GROUP BY f.farm_id, fr.farmer_id, c.crop_id ORDER BY f.farm_name, c.crop_name");
+$cropsStmt->execute(['f' => $from, 't' => $to]); $cropRows = $cropsStmt->fetchAll();
+
+// Planting records by status
+$plantings = $pdo->prepare("SELECT ps.status_name, COUNT(*) total FROM plantings p JOIN planting_statuses ps ON ps.status_id=p.status_id WHERE p.planting_date BETWEEN :f AND :t GROUP BY ps.status_name ORDER BY ps.status_name");
+$plantings->execute(['f' => $from, 't' => $to]); $statusRows = $plantings->fetchAll();
+
+// Harvest records
+$harvest = $pdo->prepare("SELECT h.harvest_date, c.crop_name, f.farm_name, h.quantity_kg, h.selling_price_per_kg, (h.quantity_kg*h.selling_price_per_kg) estimated_value, q.grade_name, hr.remark_description
+    FROM harvests h JOIN plantings p ON p.planting_id=h.planting_id JOIN farms f ON f.farm_id=p.farm_id JOIN crops c ON c.crop_id=p.crop_id
+    LEFT JOIN quality_grades q ON q.grade_id=h.grade_id LEFT JOIN harvest_remarks hr ON hr.remark_id=h.remark_id
+    WHERE h.harvest_date BETWEEN :f AND :t ORDER BY h.harvest_date DESC");
+$harvest->execute(['f' => $from, 't' => $to]); $harvestRows = $harvest->fetchAll();
+$totalQty = array_sum(array_map(fn($r) => (float)$r['quantity_kg'], $harvestRows));
+$totalValue = array_sum(array_map(fn($r) => (float)$r['estimated_value'], $harvestRows));
+require __DIR__ . '/includes/header.php';
 ?>
-<div class="panel"><div class="panel-head"><div><div class="section-title">Report filters</div><div class="muted small">Choose a date range for planting and harvest reports.</div></div></div><form class="row g-2 align-items-end"><div class="col-sm-4"><label class="form-label">From</label><input class="form-control" type="date" name="from" value="<?= e($from) ?>"></div><div class="col-sm-4"><label class="form-label">To</label><input class="form-control" type="date" name="to" value="<?= e($to) ?>"></div><div class="col-sm-4"><button class="btn btn-primary">Apply filters</button> <button type="button" class="btn btn-outline-secondary" onclick="window.print()">Print</button></div></form></div>
-<div class="row g-3 mb-3"><div class="col-md-6"><div class="stat-card"><div class="stat-top">Harvest quantity <span class="stat-icon"><i class="bi bi-box-seam"></i></span></div><div class="stat-value"><?= number_format($totalQty,2) ?> <small class="fs-6 muted">kg</small></div></div></div><div class="col-md-6"><div class="stat-card"><div class="stat-top">Estimated harvest value <span class="stat-icon"><i class="bi bi-cash-stack"></i></span></div><div class="stat-value">₱<?= number_format($totalValue,2) ?></div></div></div></div>
-<section class="panel"><div class="panel-head"><div><div class="section-title">Farmers and their farms</div><div class="muted small">Farm ownership and planting activity</div></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Farm</th><th>Farmer</th><th>Location</th><th>Area (ha)</th><th>Plantings</th></tr></thead><tbody><?php foreach($farms as $r): ?><tr><td><?= e($r['farm_name']) ?></td><td><?= e($r['farmer_name']) ?></td><td><?= e($r['location']) ?></td><td><?= number_format((float)$r['area_hectares'],2) ?></td><td><?= (int)$r['planting_count'] ?></td></tr><?php endforeach; if(!$farms): ?><tr><td colspan="5" class="empty-state">No farm records.</td></tr><?php endif; ?></tbody></table></div></section>
-<div class="row g-3"><div class="col-lg-4"><section class="panel h-100"><div class="section-title mb-3">Planting records by status</div><?php foreach($statusRows as $r): ?><div class="d-flex justify-content-between border-bottom py-2 small"><span><?= e($r['status_name']) ?></span><strong><?= (int)$r['total'] ?></strong></div><?php endforeach; if(!$statusRows): ?><div class="muted small">No planting records in this date range.</div><?php endif; ?></section></div><div class="col-lg-8"><section class="panel"><div class="panel-head"><div><div class="section-title">Harvest report</div><div class="muted small">Value = quantity × selling price per kilogram</div></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Crop / Farm</th><th>Quantity</th><th>Grade</th><th class="text-end">Value</th></tr></thead><tbody><?php foreach($harvestRows as $r): ?><tr><td><?= e($r['harvest_date']) ?></td><td><?= e($r['crop_name']) ?><div class="muted small"><?= e($r['farm_name']) ?></div></td><td><?= number_format((float)$r['quantity_kg'],2) ?> kg</td><td><?= e($r['grade_name']??'—') ?></td><td class="text-end">₱<?= number_format((float)$r['estimated_value'],2) ?></td></tr><?php endforeach; if(!$harvestRows): ?><tr><td colspan="5" class="empty-state">No harvest records in this date range.</td></tr><?php endif; ?></tbody></table></div></section></div></div>
-<?php require __DIR__.'/includes/footer.php'; ?>
+<div class="panel mb-3"><div class="panel-head"><div><div class="section-title">Report filters</div><div class="muted small">Choose a date range. It applies to planting dates and harvest dates.</div></div></div>
+<?php if ($swapped): ?><div class="alert alert-warning py-2 small">The "From" date was later than the "To" date, so the two dates were swapped.</div><?php endif; ?>
+<form class="row g-2 align-items-end"><div class="col-sm-4"><label class="form-label">From</label><input class="form-control" type="date" name="from" value="<?= e($from) ?>"></div><div class="col-sm-4"><label class="form-label">To</label><input class="form-control" type="date" name="to" value="<?= e($to) ?>"></div><div class="col-sm-4"><button class="btn btn-primary">Apply filters</button> <button type="button" class="btn btn-outline-secondary" onclick="window.print()">Print</button></div></form></div>
+
+<div class="row g-3 mb-3"><div class="col-md-6"><div class="stat-card"><div class="stat-top">Harvest quantity <span class="stat-icon"><i class="bi bi-box-seam"></i></span></div><div class="stat-value"><?= number_format($totalQty, 2) ?> <small class="fs-6 muted">kg</small></div></div></div><div class="col-md-6"><div class="stat-card"><div class="stat-top">Estimated harvest value <span class="stat-icon"><i class="bi bi-cash-stack"></i></span></div><div class="stat-value">₱<?= number_format($totalValue, 2) ?></div></div></div></div>
+
+<section class="panel mb-3"><div class="panel-head"><div><div class="section-title">Farmers and their farms</div><div class="muted small">Farm ownership and planting activity in the selected date range</div></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Farm</th><th>Farmer</th><th>Location</th><th>Area (ha)</th><th>Plantings</th></tr></thead><tbody><?php foreach ($farms as $r): ?><tr><td><?= e($r['farm_name']) ?></td><td><?= e($r['farmer_name']) ?></td><td><?= e($r['location']) ?></td><td><?= number_format((float)$r['area_hectares'], 2) ?></td><td><?= (int)$r['planting_count'] ?></td></tr><?php endforeach; if (!$farms): ?><tr><td colspan="5" class="empty-state">No farm records.</td></tr><?php endif; ?></tbody></table></div></section>
+
+<section class="panel mb-3"><div class="panel-head"><div><div class="section-title">Crops planted per farm</div><div class="muted small">Number of plantings and total area planted for each crop on each farm</div></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Farm</th><th>Farmer</th><th>Crop</th><th>Variety</th><th class="text-end">Plantings</th><th class="text-end">Area planted (ha)</th></tr></thead><tbody><?php foreach ($cropRows as $r): ?><tr><td><?= e($r['farm_name']) ?></td><td><?= e($r['farmer_name']) ?></td><td><?= e($r['crop_name']) ?></td><td><?= e($r['variety']) ?></td><td class="text-end"><?= (int)$r['planting_count'] ?></td><td class="text-end"><?= number_format((float)$r['total_area'], 2) ?></td></tr><?php endforeach; if (!$cropRows): ?><tr><td colspan="6" class="empty-state">No planting records in this date range.</td></tr><?php endif; ?></tbody></table></div></section>
+
+<div class="row g-3"><div class="col-lg-4"><section class="panel h-100"><div class="section-title mb-3">Planting records by status</div><?php foreach ($statusRows as $r): ?><div class="d-flex justify-content-between border-bottom py-2 small"><span><?= e($r['status_name']) ?></span><strong><?= (int)$r['total'] ?></strong></div><?php endforeach; if (!$statusRows): ?><div class="muted small">No planting records in this date range.</div><?php endif; ?></section></div><div class="col-lg-8"><section class="panel"><div class="panel-head"><div><div class="section-title">Harvest report</div><div class="muted small">Value = quantity × selling price per kilogram</div></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Crop / Farm</th><th>Quantity</th><th>Grade</th><th class="text-end">Value</th></tr></thead><tbody><?php foreach ($harvestRows as $r): ?><tr><td><?= e($r['harvest_date']) ?></td><td><?= e($r['crop_name']) ?><div class="muted small"><?= e($r['farm_name']) ?></div></td><td><?= number_format((float)$r['quantity_kg'], 2) ?> kg</td><td><?= e($r['grade_name'] ?? '—') ?></td><td class="text-end">₱<?= number_format((float)$r['estimated_value'], 2) ?></td></tr><?php endforeach; if (!$harvestRows): ?><tr><td colspan="5" class="empty-state">No harvest records in this date range.</td></tr><?php endif; ?></tbody></table></div></section></div></div>
+<?php require __DIR__ . '/includes/footer.php'; ?>

@@ -1,11 +1,17 @@
 Options -Indexes
-<FilesMatch "^\\.(env|git)">
+
+# Block dotfiles such as .env and .git
+<FilesMatch "^\.(env|git)">
     Require all denied
 </FilesMatch>
+
+# Block internal folders
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^(config|includes|database)/ - [F,L]
 </IfModule>
-<Files "setup_admin.php">
+
+# CLI / diagnostic scripts must never be reachable from the browser
+<FilesMatch "^(setup_admin|test_db)\.php$">
     Require all denied
-</Files>
+</FilesMatch>
