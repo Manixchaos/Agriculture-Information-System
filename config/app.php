@@ -85,3 +85,11 @@ function pull_flashes(): array
     unset($_SESSION['flash']);
     return $f;
 }
+
+/** Compatibility helper used by includes/header.php: returns one message or null. */
+function take_flash(): ?array
+{
+    $all = $_SESSION['flash'] ?? [];
+    unset($_SESSION['flash']);
+    return $all ? $all[0] : null;   // ['type' => 'success', 'message' => '...']
+}
