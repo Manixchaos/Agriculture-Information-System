@@ -20,13 +20,13 @@ $flashMessage = take_flash();
   <div class="nav-label">WORKSPACE</div>
   <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='index.php'?'active':'' ?>" href="index.php"><i class="bi bi-grid-1x2"></i> Dashboard</a>
   <div class="nav-label mt-4">MANAGEMENT</div>
-  <a class="side-link" href="module.php?m=farmers"><i class="bi bi-people"></i> Farmers</a>
-  <a class="side-link" href="module.php?m=farms"><i class="bi bi-house"></i> Farms</a>
-  <a class="side-link" href="module.php?m=crops"><i class="bi bi-flower2"></i> Crops</a>
-  <a class="side-link" href="module.php?m=plantings"><i class="bi bi-calendar2-week"></i> Planting records</a>
-  <a class="side-link" href="module.php?m=harvests"><i class="bi bi-basket"></i> Harvest records</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='farmers'?'active':'' ?>" href="module.php?m=farmers" aria-label="Farmers" <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='farmers'?'aria-current="page"':'' ?>><i class="bi bi-people"></i> Farmers</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='farms'?'active':'' ?>" href="module.php?m=farms" aria-label="Farms" <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='farms'?'aria-current="page"':'' ?>><i class="bi bi-house"></i> Farms</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='crops'?'active':'' ?>" href="module.php?m=crops" aria-label="Crops" <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='crops'?'aria-current="page"':'' ?>><i class="bi bi-flower2"></i> Crops</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='plantings'?'active':'' ?>" href="module.php?m=plantings" aria-label="Planting records" <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='plantings'?'aria-current="page"':'' ?>><i class="bi bi-calendar2-week"></i> Planting records</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='harvests'?'active':'' ?>" href="module.php?m=harvests" aria-label="Harvest records" <?= basename($_SERVER['PHP_SELF'])==='module.php' && ($_GET['m'] ?? '')==='harvests'?'aria-current="page"':'' ?>><i class="bi bi-basket"></i> Harvest records</a>
   <div class="nav-label mt-4">INSIGHTS</div>
-  <a class="side-link" href="reports.php"><i class="bi bi-bar-chart"></i> Reports</a>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='reports.php'?'active':'' ?>" href="reports.php" aria-label="Reports" <?= basename($_SERVER['PHP_SELF'])==='reports.php'?'aria-current="page"':'' ?>><i class="bi bi-bar-chart"></i> Reports</a>
     <?php if (($user['role'] ?? '') === 'Administrator'): ?>
   <div class="nav-label mt-4">ADMINISTRATION</div>
   <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='users.php'?'active':'' ?>" href="users.php"><i class="bi bi-person-gear"></i> Users</a>
@@ -37,6 +37,6 @@ $flashMessage = take_flash();
   </div>
 </aside>
 <main class="main-area">
-<header class="topbar"><div><span class="eyebrow">AGRICULTURE INFORMATION SYSTEM</span><h1><?= e($pageTitle) ?></h1></div><div class="topbar-right"><span class="live-dot"></span><span>Database connected</span><span class="top-date"><?= date('D, d M Y') ?></span></div></header>
+<header class="topbar"><div><h1><?= e($pageTitle) ?></h1></div><div class="topbar-right"><span class="live-dot"></span><span>Database connected</span><span class="top-date"><?= date('D, d M Y') ?></span></div></header>
 <div class="content-wrap">
 <?php if ($flashMessage): ?><div class="alert alert-<?= e($flashMessage['type']) ?> alert-dismissible fade show" role="alert"><?= e($flashMessage['message']) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
