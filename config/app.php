@@ -86,10 +86,16 @@ function pull_flashes(): array
     return $f;
 }
 
-/** Compatibility helper used by includes/header.php: returns one message or null. */
+/** Used by includes/header.php: returns one flash message or null. */
 function take_flash(): ?array
 {
     $all = $_SESSION['flash'] ?? [];
     unset($_SESSION['flash']);
-    return $all ? $all[0] : null;   // ['type' => 'success', 'message' => '...']
+    return $all ? $all[0] : null;
+}
+
+/** Used by includes/header.php: reads an environment value. */
+function envv(string $key, ?string $default = null): ?string
+{
+    return env($key, $default);
 }

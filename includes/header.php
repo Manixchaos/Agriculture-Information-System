@@ -27,6 +27,10 @@ $flashMessage = take_flash();
   <a class="side-link" href="module.php?m=harvests"><i class="bi bi-basket"></i> Harvest records</a>
   <div class="nav-label mt-4">INSIGHTS</div>
   <a class="side-link" href="reports.php"><i class="bi bi-bar-chart"></i> Reports</a>
+    <?php if (($user['role'] ?? '') === 'Administrator'): ?>
+  <div class="nav-label mt-4">ADMINISTRATION</div>
+  <a class="side-link <?= basename($_SERVER['PHP_SELF'])==='users.php'?'active':'' ?>" href="users.php"><i class="bi bi-person-gear"></i> Users</a>
+  <?php endif; ?>
   <div class="sidebar-bottom">
     <div class="user-mini"><div class="avatar"><?= e(strtoupper(substr($user['full_name'] ?? 'U',0,1))) ?></div><div><strong><?= e($user['full_name'] ?? '') ?></strong><small><?= e($user['role'] ?? '') ?></small></div></div>
     <a class="side-link logout-link" href="logout.php"><i class="bi bi-box-arrow-left"></i> Sign out</a>
