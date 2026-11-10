@@ -307,7 +307,8 @@ a { text-underline-offset: 3px; }
   .brand { margin: 0 8px 0 0; }
   .brand-mark { width: 38px; height: 38px; flex-basis: 38px; }
   .side-link { flex: 0 0 42px; min-height: 42px; margin: 0; }
-  .sidebar-bottom { display: none; }
+  .sidebar-bottom { display: flex; margin: 0 0 0 auto; padding: 0; }
+  .sidebar-bottom .user-mini { display: none; }
   .main-area { margin-left: 0; padding-top: 68px; }
   .topbar { min-height: 76px; padding: 16px 18px; align-items: flex-start; flex-direction: column; gap: 8px; }
   .topbar h1 { font-size: 21px; }
