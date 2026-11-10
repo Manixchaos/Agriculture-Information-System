@@ -27,7 +27,7 @@ PHP 8.1+ / Supabase PostgreSQL / PDO / Bootstrap 5
 The schema is intended to be run in a project database you control. It creates an `app_users` table for this PHP application's session-based login. It does not use Supabase Auth.
 
 ## 3. Configure environment
-Copy `.env.example` to `.env` and enter your Supabase PostgreSQL connection values.
+Create the `.env` and enter your Supabase PostgreSQL connection values.
 
 For Supabase, use the connection details shown in your project dashboard. Keep SSL enabled. Do not commit `.env` to GitHub.
 
@@ -47,9 +47,9 @@ Enable `pdo_pgsql` in your PHP configuration, then:
 php -S localhost:8000
 ```
 
-Open `http://localhost:8000`.
+Open `http://localhost:8000` or depending on your assigned port.
 
-If using Apache, point the document root to this project directory for local development. For deployment, set the web root to the project directory and deny public access to `.env`, `database/`, and `setup_admin.php`, or move those files outside the document root.
+
 
 ## 6. Roles
 - **Administrator:** all modules, create/update/delete, reports, user administration is not included in this starter.
