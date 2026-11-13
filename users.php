@@ -39,20 +39,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $users = $pdo->query('SELECT user_id, full_name, email, role, is_active, created_at FROM app_users ORDER BY user_id')->fetchAll();
 require __DIR__ . '/includes/header.php';
 ?>
+<div class="page-intro">
+  <p class="page-lead">Administrator and Staff access to AgriTrack. Accounts sign in with an email address and password.</p>
+</div>
 <div class="row g-3">
-<div class="col-lg-4"><section class="panel"><div class="panel-head"><div><div class="section-title">Add user</div><div class="muted small">Create an Administrator or Staff account.</div></div></div>
-<?php foreach ($errors as $err): ?><div class="alert alert-danger py-2 small"><?= e($err) ?></div><?php endforeach; ?>
-<form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="create">
-<label class="form-label required">Full name</label><input class="form-control mb-3" name="full_name" maxlength="120" required value="<?= e($_POST['full_name'] ?? '') ?>">
-<label class="form-label required">Email</label><input class="form-control mb-3" type="email" name="email" maxlength="180" required value="<?= e($_POST['email'] ?? '') ?>">
-<label class="form-label required">Password (min. 10 characters)</label><input class="form-control mb-3" type="password" name="password" minlength="10" required autocomplete="new-password">
-<label class="form-label required">Role</label><select class="form-select mb-3" name="role"><option value="Staff">Staff (cannot delete records)</option><option value="Administrator">Administrator (full access)</option></select>
-<button class="btn btn-primary w-100"><i class="bi bi-person-plus me-1"></i> Create user</button></form></section></div>
-<div class="col-lg-8"><section class="panel"><div class="panel-head"><div><div class="section-title">Accounts</div><div class="muted small"><?= count($users) ?> user<?= count($users) === 1 ? '' : 's' ?></div></div></div>
-<div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody>
-<?php foreach ($users as $u): ?><tr><td><strong><?= e($u['full_name']) ?></strong><div class="muted small"><?= e($u['email']) ?></div></td><td><?= e($u['role']) ?></td><td><span class="badge-soft"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span></td>
-<td class="text-end text-nowrap">
-<form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="toggle"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><button class="btn btn-sm btn-outline-secondary" <?= (int)$u['user_id'] === $me ? 'disabled' : '' ?>><?= $u['is_active'] ? 'Deactivate' : 'Activate' ?></button></form>
-<form method="post" class="d-inline-flex gap-1 ms-1"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="reset"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><input class="form-control form-control-sm" style="width:9rem" type="password" name="new_password" minlength="10" placeholder="New password" autocomplete="new-password" required><button class="btn btn-sm btn-outline-secondary">Reset</button></form></td></tr><?php endforeach; ?>
-</tbody></table></div></section></div></div>
+<div class="col-lg-4">
+  <section class="panel">
+    <div class="panel-head"><div><h2 class="section-title">Add user</h2><div class="panel-sub">Create an Administrator or Staff account.</div></div></div>
+    <?php foreach ($errors as $err): ?><div class="alert alert-danger" role="alert"><?= e($err) ?></div><?php endforeach; ?>
+    <form method="post">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="create">
+      <label class="form-label required" for="new_full_name">Full name</label><input class="form-control mb-3" id="new_full_name" name="full_name" maxlength="120" required value="<?= e($_POST['full_name'] ?? '') ?>">
+      <label class="form-label required" for="new_email">Email</label><input class="form-control mb-3" id="new_email" type="email" name="email" maxlength="180" required value="<?= e($_POST['email'] ?? '') ?>">
+      <label class="form-label required" for="new_password">Password (min. 10 characters)</label><input class="form-control mb-3" id="new_password" type="password" name="password" minlength="10" required autocomplete="new-password">
+      <label class="form-label required" for="new_role">Role</label><select class="form-select mb-3" id="new_role" name="role"><option value="Staff">Staff (cannot delete records)</option><option value="Administrator">Administrator (full access)</option></select>
+      <div class="form-actions"><button class="btn btn-primary w-100"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Create user</button></div>
+    </form>
+  </section>
+</div>
+<div class="col-lg-8">
+  <section class="panel">
+    <div class="panel-head"><div><h2 class="section-title">Accounts</h2><div class="panel-sub"><?= count($users) ?> user<?= count($users) === 1 ? '' : 's' ?> with access to this workspace</div></div></div>
+    <div class="table-responsive"><table class="table">
+      <caption class="visually-hidden">User accounts</caption>
+      <thead><tr><th>Name</th><th>Role</th><th>Status</th><th class="actions-cell">Actions</th></tr></thead>
+      <tbody>
+      <?php foreach ($users as $u): ?>
+      <tr>
+        <td><div class="user-cell"><span class="avatar" aria-hidden="true"><?= e(initials((string)$u['full_name'])) ?></span><div><strong><?= e($u['full_name']) ?></strong><div class="sub"><?= e($u['email']) ?></div></div></div></td>
+        <td><?= e($u['role']) ?></td>
+        <td><span class="<?= $u['is_active'] ? 'badge-soft' : 'badge-muted' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span></td>
+        <td class="actions-cell">
+          <span class="row-actions">
+            <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="toggle"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><button class="btn btn-sm btn-outline-secondary" <?= (int)$u['user_id'] === $me ? 'disabled' : '' ?> aria-label="<?= $u['is_active'] ? 'Deactivate' : 'Activate' ?> account for <?= e($u['full_name']) ?>"><?= $u['is_active'] ? 'Deactivate' : 'Activate' ?></button></form>
+            <form method="post" class="reset-form"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="reset"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><input class="form-control form-control-sm" type="password" name="new_password" minlength="10" placeholder="New password" aria-label="New password for <?= e($u['full_name']) ?>" autocomplete="new-password" required><button class="btn btn-sm btn-outline-secondary" aria-label="Reset password for <?= e($u['full_name']) ?>">Reset</button></form>
+          </span>
+        </td>
+      </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+  </section>
+</div>
+</div>
 <?php require __DIR__ . '/includes/footer.php'; ?>

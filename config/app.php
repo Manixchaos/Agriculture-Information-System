@@ -72,6 +72,45 @@ function validate_date(string $d): bool
     return $dt && $dt->format('Y-m-d') === $d;
 }
 
+/** Map a planting status name to its display tone class. */
+function status_tone(string $name): string
+{
+    $n = strtolower($name);
+    return match (true) {
+        str_contains($n, 'cancel') => 'tone-cancelled',
+        str_contains($n, 'harvest') => 'tone-harvested',
+        str_contains($n, 'grow') => 'tone-growing',
+        str_contains($n, 'plan') => 'tone-planned',
+        default => 'tone-neutral',
+    };
+}
+
+/** Human-readable date for display; returns an em dash for empty values. */
+function nice_date(?string $value): string
+{
+    if ($value === null || trim($value) === '') {
+        return '—';
+    }
+    $ts = strtotime($value);
+    return $ts !== false ? date('j M Y', $ts) : $value;
+}
+
+/** Initials for a person's display name. */
+function initials(string $name): string
+{
+    $parts = preg_split('/\s+/', trim($name)) ?: [];
+    $letters = '';
+    foreach ($parts as $part) {
+        if ($part !== '') {
+            $letters .= mb_strtoupper(mb_substr($part, 0, 1));
+        }
+        if (mb_strlen($letters) >= 2) {
+            break;
+        }
+    }
+    return $letters !== '' ? $letters : '·';
+}
+
 /** Queue a flash message: flash('success', 'Saved.') */
 function flash(string $type, string $message): void
 {
