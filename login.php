@@ -57,7 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="login-field<?= $error ? ' has-error' : '' ?>">
           <label for="login_password">Password</label>
-          <input id="login_password" type="password" name="password" required autocomplete="current-password"<?= $error ? ' aria-invalid="true" aria-describedby="login_error"' : '' ?>>
+          <div class="password-wrap">
+            <input id="login_password" type="password" name="password" required autocomplete="current-password"<?= $error ? ' aria-invalid="true" aria-describedby="login_error"' : '' ?>>
+            <button type="button" class="password-toggle" data-toggle-password="login_password" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+          </div>
         </div>
         <button class="login-submit" type="submit">Sign in <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
       </form>
@@ -70,5 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p>© <?= date('Y') ?> AgriTrack</p>
   </footer>
 </div>
+  <script src="assets/app.js" defer></script>
 </body>
 </html>

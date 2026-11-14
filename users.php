@@ -51,7 +51,11 @@ require __DIR__ . '/includes/header.php';
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="create">
       <label class="form-label required" for="new_full_name">Full name</label><input class="form-control mb-3" id="new_full_name" name="full_name" maxlength="120" required value="<?= e($_POST['full_name'] ?? '') ?>">
       <label class="form-label required" for="new_email">Email</label><input class="form-control mb-3" id="new_email" type="email" name="email" maxlength="180" required value="<?= e($_POST['email'] ?? '') ?>">
-      <label class="form-label required" for="new_password">Password (min. 10 characters)</label><input class="form-control mb-3" id="new_password" type="password" name="password" minlength="10" required autocomplete="new-password">
+      <label class="form-label required" for="new_password">Password (min. 10 characters)</label>
+<div class="input-group mb-3">
+  <input class="form-control" id="new_password" type="password" name="password" minlength="10" required autocomplete="new-password">
+  <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-toggle-password="new_password" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+</div>
       <label class="form-label required" for="new_role">Role</label><select class="form-select mb-3" id="new_role" name="role"><option value="Staff">Staff (cannot delete records)</option><option value="Administrator">Administrator (full access)</option></select>
       <div class="form-actions"><button class="btn btn-primary w-100"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Create user</button></div>
     </form>
@@ -72,7 +76,12 @@ require __DIR__ . '/includes/header.php';
         <td class="actions-cell">
           <span class="row-actions">
             <form method="post" class="d-inline"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="toggle"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><button class="btn btn-sm btn-outline-secondary" <?= (int)$u['user_id'] === $me ? 'disabled' : '' ?> aria-label="<?= $u['is_active'] ? 'Deactivate' : 'Activate' ?> account for <?= e($u['full_name']) ?>"><?= $u['is_active'] ? 'Deactivate' : 'Activate' ?></button></form>
-            <form method="post" class="reset-form"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="reset"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>"><input class="form-control form-control-sm" type="password" name="new_password" minlength="10" placeholder="New password" aria-label="New password for <?= e($u['full_name']) ?>" autocomplete="new-password" required><button class="btn btn-sm btn-outline-secondary" aria-label="Reset password for <?= e($u['full_name']) ?>">Reset</button></form>
+            <form method="post" class="reset-form"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="do" value="reset"><input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+<div class="input-group input-group-sm">
+  <input class="form-control form-control-sm" id="reset_pw_<?= (int)$u['user_id'] ?>" type="password" name="new_password" minlength="10" placeholder="New password" aria-label="New password for <?= e($u['full_name']) ?>" autocomplete="new-password" required>
+  <button type="button" class="btn btn-sm btn-outline-secondary password-toggle-btn" data-toggle-password="reset_pw_<?= (int)$u['user_id'] ?>" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+</div>
+<button class="btn btn-sm btn-outline-secondary" aria-label="Reset password for <?= e($u['full_name']) ?>">Reset</button></form>
           </span>
         </td>
       </tr>
