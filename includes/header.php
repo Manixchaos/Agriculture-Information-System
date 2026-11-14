@@ -31,11 +31,11 @@ $userName = $user['full_name'] ?? '';
     <div class="nav-label">Workspace</div>
     <a class="side-link <?= $currentPage === 'index.php' ? 'active' : '' ?>" href="index.php" <?= $currentPage === 'index.php' ? 'aria-current="page"' : '' ?>><i class="bi bi-grid-1x2" aria-hidden="true"></i> Dashboard</a>
     <div class="nav-label mt-4">Management</div>
-    <a class="side-link <?= $isModule('farmers') ? 'active' : '' ?>" href="module.php?m=farmers" <?= $isModule('farmers') ? 'aria-current="page"' : '' ?>><i class="bi bi-people" aria-hidden="true"></i> Farmers</a>
-    <a class="side-link <?= $isModule('farms') ? 'active' : '' ?>" href="module.php?m=farms" <?= $isModule('farms') ? 'aria-current="page"' : '' ?>><i class="bi bi-map" aria-hidden="true"></i> Farms</a>
-    <a class="side-link <?= $isModule('crops') ? 'active' : '' ?>" href="module.php?m=crops" <?= $isModule('crops') ? 'aria-current="page"' : '' ?>><i class="bi bi-flower2" aria-hidden="true"></i> Crops</a>
+    <a class="side-link <?= $isModule('farmers') ? 'active' : '' ?>" href="module.php?m=farmers" <?= $isModule('farmers') ? 'aria-current="page"' : '' ?>><img class="nav-icon" src="assets/farmers.png" alt="" width="20" height="20" decoding="async" aria-hidden="true"> Farmers</a>
+    <a class="side-link <?= $isModule('farms') ? 'active' : '' ?>" href="module.php?m=farms" <?= $isModule('farms') ? 'aria-current="page"' : '' ?>><img class="nav-icon" src="assets/farms.png" alt="" width="20" height="20" decoding="async" aria-hidden="true"> Farms</a>
+    <a class="side-link <?= $isModule('crops') ? 'active' : '' ?>" href="module.php?m=crops" <?= $isModule('crops') ? 'aria-current="page"' : '' ?>><img class="nav-icon" src="assets/crops.png" alt="" width="20" height="20" decoding="async" aria-hidden="true"> Crops</a>
     <a class="side-link <?= $isModule('plantings') ? 'active' : '' ?>" href="module.php?m=plantings" <?= $isModule('plantings') ? 'aria-current="page"' : '' ?>><i class="bi bi-calendar2-week" aria-hidden="true"></i> Planting records</a>
-    <a class="side-link <?= $isModule('harvests') ? 'active' : '' ?>" href="module.php?m=harvests" <?= $isModule('harvests') ? 'aria-current="page"' : '' ?>><i class="bi bi-basket2" aria-hidden="true"></i> Harvest records</a>
+    <a class="side-link <?= $isModule('harvests') ? 'active' : '' ?>" href="module.php?m=harvests" <?= $isModule('harvests') ? 'aria-current="page"' : '' ?>><img class="nav-icon" src="assets/harvest_records.png" alt="" width="20" height="20" decoding="async" aria-hidden="true"> Harvest records</a>
     <div class="nav-label mt-4">Insights</div>
     <a class="side-link <?= $currentPage === 'reports.php' ? 'active' : '' ?>" href="reports.php" <?= $currentPage === 'reports.php' ? 'aria-current="page"' : '' ?>><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Reports</a>
     <?php if (($user['role'] ?? '') === 'Administrator'): ?>
