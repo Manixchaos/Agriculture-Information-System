@@ -1006,7 +1006,6 @@ textarea.form-control { min-height: 88px; }
   .brand-mark { width: 34px; height: 34px; flex-basis: 34px; border-radius: 9px; }
   .side-link { flex: 0 0 42px; min-height: 42px; margin: 0; border-radius: 9px; }
 .side-link i { font-size: 18px; }
-.side-link .nav-icon { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 2px; }
   .side-link.active { background: var(--sidebar-active); }
   .sidebar-bottom { display: flex; margin: 0 0 0 auto; padding: 0; }
   .sidebar-bottom .user-mini { display: none; }
