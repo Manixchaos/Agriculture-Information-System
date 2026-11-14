@@ -1003,9 +1003,12 @@ textarea.form-control { min-height: 88px; }
     box-shadow: 0 6px 18px -14px rgba(9, 26, 17, .8);
   }
   .brand { margin: 0 5px 0 -3px; gap: 0; padding: 3px; border-radius: 10px; }
-  .brand-mark { width: 34px; height: 34px; flex-basis: 34px; border-radius: 9px; }
-  .side-link { flex: 0 0 42px; min-height: 42px; margin: 0; border-radius: 9px; }
-.side-link i { font-size: 18px; }
+  .brand-mark { width: 30px; height: 30px; flex-basis: 30px; border-radius: 8px; }
+  .side-link { flex: 0 0 44px; min-height: 44px; margin: 0; border-radius: 9px; }
+.side-nav { flex: 1 1 0; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.side-nav::-webkit-scrollbar { display: none; }
+.side-link { scroll-snap-align: start; }
+.side-link i { font-size: 20px; }
   .side-link.active { background: var(--sidebar-active); }
   .sidebar-bottom { display: flex; margin: 0 0 0 auto; padding: 0; }
   .sidebar-bottom .user-mini { display: none; }
