@@ -14,7 +14,7 @@ $userName = $user['full_name'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($pageTitle) ?> · <?= e(envv('APP_NAME', 'AgriTrack')) ?></title>
 <meta name="description" content="Farm, crop, planting, and harvest records for agricultural operations.">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="assets/style.css" rel="stylesheet">
@@ -24,7 +24,7 @@ $userName = $user['full_name'] ?? '';
 <div class="app-shell">
 <aside class="sidebar">
   <a class="brand" href="index.php" aria-label="AgriTrack dashboard">
-    <span class="brand-mark" aria-hidden="true"><i class="bi bi-flower1"></i></span>
+    <span class="brand-mark" aria-hidden="true"><img src="assets/logo.png" alt="" width="38" height="38" decoding="async"></span>
     <span>AgriTrack<small>FIELD MANAGEMENT</small></span>
   </a>
   <nav class="side-nav" aria-label="Main navigation">
@@ -44,7 +44,7 @@ $userName = $user['full_name'] ?? '';
     <?php endif; ?>
   </nav>
   <div class="sidebar-bottom">
-    <div class="user-mini"><div class="avatar" aria-hidden="true"><?= e(initials($userName)) ?></div><div><strong><?= e($userName) ?></strong><small><?= e($user['role'] ?? '') ?></small></div></div>
+    <div class="user-mini"><div class="avatar" aria-hidden="true"><?= e(initials($userName)) ?></div><div><strong><?= e($userName) ?></strong><small class="side-role"><?= e($user['role'] ?? '') ?></small></div></div>
     <a class="side-link logout-link" href="logout.php" aria-label="Sign out"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Sign out</a>
   </div>
 </aside>

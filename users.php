@@ -67,7 +67,7 @@ require __DIR__ . '/includes/header.php';
       <?php foreach ($users as $u): ?>
       <tr>
         <td><div class="user-cell"><span class="avatar" aria-hidden="true"><?= e(initials((string)$u['full_name'])) ?></span><div><strong><?= e($u['full_name']) ?></strong><div class="sub"><?= e($u['email']) ?></div></div></div></td>
-        <td><?= e($u['role']) ?></td>
+        <td><span class="role-badge"><?= e($u['role']) ?></span></td>
         <td><span class="<?= $u['is_active'] ? 'badge-soft' : 'badge-muted' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span></td>
         <td class="actions-cell">
           <span class="row-actions">

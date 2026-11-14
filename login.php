@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <title>Sign in · AgriTrack</title>
 <meta name="description" content="Sign in to the AgriTrack agriculture information system.">
 <meta name="theme-color" content="#f7f5ed">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="assets/style.css" rel="stylesheet">
 <link href="assets/login.css" rel="stylesheet">
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-frame">
   <header class="login-masthead">
     <a class="login-brand" href="login.php" aria-label="AgriTrack sign in">
-      <span class="brand-mark" aria-hidden="true"><i class="bi bi-flower1"></i></span>
+      <span class="brand-mark" aria-hidden="true"><img src="assets/logo.png" alt="" width="34" height="34" decoding="async"></span>
       <span class="brand-name">AgriTrack</span>
     </a>
     <p class="login-system">Agriculture information system</p>
