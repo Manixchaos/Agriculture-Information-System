@@ -251,7 +251,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--ink); }
   font-size: 12px;
   color: #D90000;
 }
-.side-link.logout-link i { font-size: 15px; }
+.side-link.logout-link i { font-size: 15px; color: #ff3b30; }
 
 .main-area {
   display: flex;
