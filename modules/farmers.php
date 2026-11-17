@@ -21,6 +21,8 @@ return array (
       3 => 
       array (
         'max' => 50,
+        'pattern' => '/^[A-Za-z\\s\'\\-]+$/',
+        'pattern_msg' => 'First name may contain only letters, spaces, hyphens, and apostrophes.',
       ),
     ),
     'last_name' => 
@@ -31,6 +33,8 @@ return array (
       3 => 
       array (
         'max' => 50,
+        'pattern' => '/^[A-Za-z\\s\'\\-]+$/',
+        'pattern_msg' => 'Last name may contain only letters, spaces, hyphens, and apostrophes.',
       ),
     ),
     'contact_number' => 
