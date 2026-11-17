@@ -6,30 +6,14 @@ $allowed = ['farmers', 'farms', 'crops', 'plantings', 'harvests'];
 if (!in_array($m, $allowed, true)) { http_response_code(404); exit('Module not found.'); }
 $cfg = require __DIR__ . '/modules/' . $m . '.php';
 $pdo = db(); $pk = $cfg['pk']; $table = $cfg['table']; $alias = $cfg['alias'];
+require_once __DIR__ . '/models/Module.php';
+$map = ['farmers' => 'Farmer', 'farms' => 'Farm', 'crops' => 'Crop', 'plantings' => 'Planting', 'harvests' => 'Harvest'];
+require_once __DIR__ . '/models/' . $map[$m] . '.php';
+$entity = new $map[$m]($pdo, $cfg);
 $action = $_GET['action'] ?? 'list'; $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT) ?: 0;
 $errors = [];
 
 /* ---------- helpers ---------- */
-function module_select_sql(string $m): string {
-    return match($m) {
-      'farmers' => "SELECT f.* FROM farmers f",
-      'farms' => "SELECT f.*, CONCAT(fr.first_name,' ',fr.last_name) AS farmer_name, st.soil_type_name, it.irrigation_type_name FROM farms f JOIN farmers fr USING(farmer_id) LEFT JOIN soil_types st USING(soil_type_id) LEFT JOIN irrigation_types it USING(irrigation_type_id)",
-      'crops' => "SELECT c.*, cc.category_name, s.season_name FROM crops c JOIN crop_categories cc USING(category_id) LEFT JOIN seasons s ON s.season_id=c.recommended_season_id",
-      'plantings' => "SELECT p.*, f.farm_name, c.crop_name, ps.status_name FROM plantings p JOIN farms f USING(farm_id) JOIN crops c USING(crop_id) JOIN planting_statuses ps USING(status_id)",
-      'harvests' => "SELECT h.*, c.crop_name, f.farm_name, qg.grade_name, hr.remark_description FROM harvests h JOIN plantings p USING(planting_id) JOIN farms f USING(farm_id) JOIN crops c USING(crop_id) LEFT JOIN quality_grades qg USING(grade_id) LEFT JOIN harvest_remarks hr USING(remark_id)",
-      default => throw new RuntimeException('Unknown module')
-    };
-}
-function module_options(PDO $pdo, array $field): array {
-    [,,,$t,$k,$l] = $field;
-    return $pdo->query("SELECT {$k} AS id, {$l} AS label FROM {$t} ORDER BY label")->fetchAll();
-}
-function module_filter_options(PDO $pdo, array $f): array {
-    if ($f['type'] === 'lookup') {
-        return $pdo->query("SELECT {$f['key']} AS id, {$f['text']} AS label FROM {$f['table']} ORDER BY label")->fetchAll();
-    }
-    return $pdo->query("SELECT DISTINCT {$f['text']} AS id, {$f['text']} AS label FROM {$f['table']} WHERE {$f['text']} IS NOT NULL ORDER BY label")->fetchAll();
-}
 function module_url(array $over = []): string {
     $p = array_merge($_GET, $over);
     foreach ($p as $k => $v) if ($v === null || $v === '') unset($p[$k]);
@@ -56,53 +40,6 @@ function db_error_message(PDOException $ex): string {
         default => 'The record could not be saved. Please check your entries and try again.'
     };
 }
-function module_validate(PDO $pdo, array $cfg, array $in, array &$errors): array {
-    $data = [];
-    foreach ($cfg['fields'] as $name => $field) {
-        [$label, $type, $required] = $field;
-        $o = $type === 'lookup' ? [] : ($field[3] ?? []);
-        $v = trim((string)($in[$name] ?? ''));
-        $data[$name] = $v === '' ? null : $v;
-        if ($v === '') { if ($required) $errors[] = "$label is required."; continue; }
-        if ($type === 'text' || $type === 'textarea') {
-            if (isset($o['max']) && mb_strlen($v) > $o['max']) $errors[] = "$label must not exceed {$o['max']} characters.";
-            if (isset($o['pattern']) && !preg_match($o['pattern'], $v)) $errors[] = $o['pattern_msg'] ?? "$label has an invalid format.";
-        } elseif ($type === 'number') {
-            $isInt = !empty($o['int']);
-            if (!preg_match($isInt ? '/^\d+$/' : '/^\d+(\.\d{1,2})?$/', $v)) {
-                $errors[] = $label . ($isInt ? ' must be a whole number.' : ' must be a valid non-negative number with up to 2 decimal places.');
-                continue;
-            }
-            $n = (float)$v;
-            if (isset($o['min']) && $n < $o['min']) $errors[] = "$label must be at least {$o['min']}.";
-            if (isset($o['max']) && $n > $o['max']) $errors[] = "$label must not exceed {$o['max']}.";
-        } elseif ($type === 'date') {
-            if (!validate_date($v)) { $errors[] = "$label must be a valid date."; continue; }
-            if (!empty($o['not_future']) && $v > date('Y-m-d')) $errors[] = "$label cannot be in the future.";
-        } elseif ($type === 'lookup') {
-            [, , , $t, $k] = $field;
-            if (!ctype_digit($v)) { $errors[] = "Please choose a valid $label."; continue; }
-            $st = $pdo->prepare("SELECT 1 FROM {$t} WHERE {$k}=:v LIMIT 1"); $st->execute(['v' => (int)$v]);
-            if (!$st->fetchColumn()) $errors[] = "The selected $label does not exist.";
-        }
-    }
-    return $data;
-}
-function module_cross_checks(PDO $pdo, string $m, array $d, array &$errors): void {
-    if ($errors) return;
-    if ($m === 'plantings') {
-        if ($d['expected_harvest_date'] < $d['planting_date']) $errors[] = 'Expected harvest date cannot be earlier than the planting date.';
-        $st = $pdo->prepare('SELECT area_hectares FROM farms WHERE farm_id=:i'); $st->execute(['i' => (int)$d['farm_id']]);
-        $area = $st->fetchColumn();
-        if ($area !== false && (float)$d['area_planted'] > (float)$area) $errors[] = 'Area planted cannot exceed the farm\'s total area (' . number_format((float)$area, 2) . ' ha).';
-    }
-    if ($m === 'harvests') {
-        $st = $pdo->prepare('SELECT planting_date FROM plantings WHERE planting_id=:i'); $st->execute(['i' => (int)$d['planting_id']]);
-        $pd = $st->fetchColumn();
-        if ($pd && $d['harvest_date'] < $pd) $errors[] = 'Harvest date cannot be earlier than the planting date (' . $pd . ').';
-    }
-}
-
 /* ---------- POST: create / update / delete ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -110,25 +47,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($postAction === 'delete') {
         if (!can_delete()) { http_response_code(403); exit('Administrator permission required.'); }
         $delId = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
-        try { $st = $pdo->prepare("DELETE FROM {$table} WHERE {$pk}=:id"); $st->execute(['id' => $delId]); flash('success', 'Record deleted successfully.'); }
+        try { $entity->delete((int)$delId); flash('success', 'Record deleted successfully.'); }
         catch (PDOException $ex) {
             error_log('[AgriTrack] ' . $ex->getMessage());
             flash('danger', 'This record cannot be deleted because other records depend on it.');
         }
         redirect("module.php?m={$m}");
     }
-    $data = module_validate($pdo, $cfg, $_POST, $errors);
-    module_cross_checks($pdo, $m, $data, $errors);
+    $data = $entity->validate($_POST, $errors);
+    $entity->crossChecks($data, $errors);
     if (!$errors) {
         try {
             if ($postAction === 'update') {
-                $sets = implode(',', array_map(fn($k) => "$k=:$k", array_keys($data)));
-                $data['id'] = (int)($_POST['id'] ?? 0);
-                $st = $pdo->prepare("UPDATE {$table} SET {$sets} WHERE {$pk}=:id"); $st->execute($data);
+                $entity->update((int)($_POST['id'] ?? 0), $data);
                 flash('success', 'Record updated successfully.');
             } else {
-                $cols = implode(',', array_keys($data)); $params = implode(',', array_map(fn($k) => ":$k", array_keys($data)));
-                $st = $pdo->prepare("INSERT INTO {$table} ({$cols}) VALUES ({$params})"); $st->execute($data);
+                $entity->create($data);
                 flash('success', 'Record created successfully.');
             }
             redirect("module.php?m={$m}");
@@ -140,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 /* ---------- VIEW (read-only detail page) ---------- */
 if ($action === 'view') {
-    $st = $pdo->prepare("SELECT * FROM {$table} WHERE {$pk}=:id"); $st->execute(['id' => $id]); $rec = $st->fetch();
+    $rec = $entity->find($id);
     if (!$rec) { flash('warning', 'Record not found.'); redirect("module.php?m={$m}"); }
     $pageTitle = 'View ' . rtrim($cfg['title'], 's');
     require __DIR__ . '/includes/header.php';
@@ -177,7 +111,7 @@ if ($action === 'view') {
 $record = [];
 if (in_array($action, ['create', 'edit'], true)) {
     if ($action === 'edit' && $id) {
-        $st = $pdo->prepare("SELECT * FROM {$table} WHERE {$pk}=:id"); $st->execute(['id' => $id]); $record = $st->fetch() ?: [];
+        $record = $entity->find($id) ?: [];
         if (!$record) { flash('warning', 'Record not found.'); redirect("module.php?m={$m}"); }
     }
     foreach ($cfg['fields'] as $name => $field) if (isset($_POST[$name])) $record[$name] = $_POST[$name];
@@ -194,7 +128,7 @@ if (in_array($action, ['create', 'edit'], true)) {
     <form method="post" class="row g-3 form-grid"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="form_action" value="<?= e($action === 'edit' ? 'update' : 'create') ?>"><input type="hidden" name="id" value="<?= (int)$id ?>">
     <?php foreach ($cfg['fields'] as $name => $field): [$label, $type, $required] = $field; $o = $type === 'lookup' ? [] : ($field[3] ?? []); $fid = 'field_' . $name; ?>
     <div class="<?= $type === 'textarea' ? 'col-12' : 'col-md-6' ?>"><label class="form-label <?= $required ? 'required' : '' ?>" for="<?= e($fid) ?>"><?= e($label) ?></label>
-    <?php if ($type === 'lookup'): ?><select class="form-select" id="<?= e($fid) ?>" name="<?= e($name) ?>" <?= $required ? 'required' : '' ?>><option value="">Choose <?= e(strtolower($label)) ?></option><?php foreach (module_options($pdo, $field) as $opt): ?><option value="<?= e($opt['id']) ?>" <?= (string)($record[$name] ?? '') === (string)$opt['id'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option><?php endforeach; ?></select>
+    <?php if ($type === 'lookup'): ?><select class="form-select" id="<?= e($fid) ?>" name="<?= e($name) ?>" <?= $required ? 'required' : '' ?>><option value="">Choose <?= e(strtolower($label)) ?></option><?php foreach ($entity->options($field) as $opt): ?><option value="<?= e($opt['id']) ?>" <?= (string)($record[$name] ?? '') === (string)$opt['id'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option><?php endforeach; ?></select>
     <?php elseif ($type === 'textarea'): ?><textarea class="form-control" id="<?= e($fid) ?>" rows="3" name="<?= e($name) ?>" <?= isset($o['max']) ? 'maxlength="' . (int)$o['max'] . '"' : '' ?> <?= $required ? 'required' : '' ?>><?= e($record[$name] ?? '') ?></textarea>
     <?php elseif ($type === 'number'): ?><input class="form-control" id="<?= e($fid) ?>" type="number" name="<?= e($name) ?>" value="<?= e($record[$name] ?? '') ?>" min="<?= e($o['min'] ?? 0) ?>" <?= isset($o['max']) ? 'max="' . e($o['max']) . '"' : '' ?> step="<?= !empty($o['int']) ? '1' : '0.01' ?>" inputmode="decimal" <?= $required ? 'required' : '' ?>>
     <?php else: ?><input class="form-control" id="<?= e($fid) ?>" type="<?= e($type) ?>" name="<?= e($name) ?>" value="<?= e($record[$name] ?? '') ?>" <?= isset($o['max']) && $type === 'text' ? 'maxlength="' . (int)$o['max'] . '"' : '' ?> <?= $type === 'date' && !empty($o['not_future']) ? 'max="' . date('Y-m-d') . '"' : '' ?> <?= $required ? 'required' : '' ?>><?php endif; ?></div>
@@ -206,7 +140,7 @@ if (in_array($action, ['create', 'edit'], true)) {
 /* ---------- LIST: search + filters + sorting + pagination ---------- */
 $pageTitle = $cfg['title'];
 $q = trim($_GET['q'] ?? ''); $page = max(1, (int)($_GET['page'] ?? 1)); $perPage = 10; $offset = ($page - 1) * $perPage;
-$base = module_select_sql($m); $conds = []; $params = []; $activeFilters = [];
+$base = $entity->selectSql(); $conds = []; $params = []; $activeFilters = [];
 
 if ($q !== '') {
     $parts = [];
@@ -228,9 +162,8 @@ $orderBy = $sort !== ''
     ? ($cfg['sortmap'][$sort] ?? "{$alias}.{$sort}") . " {$dir}, {$alias}.{$pk} DESC"
     : "{$alias}.{$pk} DESC";
 
-$st = $pdo->prepare("SELECT COUNT(*) FROM (" . $base . $where . ") AS filtered_records"); $st->execute($params);
-$total = (int)$st->fetchColumn(); $pages = max(1, (int)ceil($total / $perPage)); if ($page > $pages) { $page = $pages; $offset = ($page - 1) * $perPage; }
-$st = $pdo->prepare($base . $where . " ORDER BY {$orderBy} LIMIT {$perPage} OFFSET {$offset}"); $st->execute($params); $rows = $st->fetchAll();
+$total = $entity->count($conds ? implode(' AND ', $conds) : '', $params); $pages = max(1, (int)ceil($total / $perPage)); if ($page > $pages) { $page = $pages; $offset = ($page - 1) * $perPage; }
+$rows = $entity->list($conds ? implode(' AND ', $conds) : '', $params, $orderBy, $perPage, $offset);
 $hasFilters = $q !== '' || $activeFilters;
 $singular = strtolower(rtrim($cfg['title'], 's'));
 $shownFrom = $total ? $offset + 1 : 0;
@@ -249,7 +182,7 @@ require __DIR__ . '/includes/header.php';
   <form class="filter-bar" method="get" aria-label="Search and filter records">
     <input type="hidden" name="m" value="<?= e($m) ?>"><?php if ($sort !== ''): ?><input type="hidden" name="sort" value="<?= e($sort) ?>"><input type="hidden" name="dir" value="<?= e(strtolower($dir)) ?>"><?php endif; ?>
     <div class="filter-field grow"><label class="form-label" for="filter_q">Search</label><input class="form-control form-control-sm" id="filter_q" type="search" name="q" value="<?= e($q) ?>" placeholder="Search <?= e(strtolower($cfg['title'])) ?>…"></div>
-    <?php foreach ($cfg['filters'] as $fk => $f): ?><div class="filter-field"><label class="form-label" for="f_<?= e($fk) ?>"><?= e($f['label']) ?></label><select class="form-select form-select-sm" id="f_<?= e($fk) ?>" name="f_<?= e($fk) ?>"><option value="">All</option><?php foreach (module_filter_options($pdo, $f) as $opt): ?><option value="<?= e($opt['id']) ?>" <?= (string)($activeFilters[$fk] ?? '') === (string)$opt['id'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option><?php endforeach; ?></select></div>
+    <?php foreach ($cfg['filters'] as $fk => $f): ?><div class="filter-field"><label class="form-label" for="f_<?= e($fk) ?>"><?= e($f['label']) ?></label><select class="form-select form-select-sm" id="f_<?= e($fk) ?>" name="f_<?= e($fk) ?>"><option value="">All</option><?php foreach ($entity->filterOptions($f) as $opt): ?><option value="<?= e($opt['id']) ?>" <?= (string)($activeFilters[$fk] ?? '') === (string)$opt['id'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option><?php endforeach; ?></select></div>
     <?php endforeach; ?>
     <div class="filter-actions"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply</button><?php if ($hasFilters || $sort !== ''): ?><a class="btn btn-outline-secondary btn-sm" href="module.php?m=<?= e($m) ?>">Clear</a><?php endif; ?></div>
   </form>
