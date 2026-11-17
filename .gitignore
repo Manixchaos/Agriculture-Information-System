@@ -3,8 +3,3 @@
 /vendor/
 /.idea/
 *.log
-.agent/
-.claude/
-.gemini/
-.impeccable/
-.opencode/

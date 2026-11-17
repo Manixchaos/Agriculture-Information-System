@@ -1,10 +1,11 @@
 <?php
 require_once __DIR__ . '/config/app.php';
 require_login();
-$all = require __DIR__ . '/modules.php';
 $m = $_GET['m'] ?? 'farmers';
-if (!isset($all[$m])) { http_response_code(404); exit('Module not found.'); }
-$cfg = $all[$m]; $pdo = db(); $pk = $cfg['pk']; $table = $cfg['table']; $alias = $cfg['alias'];
+$allowed = ['farmers', 'farms', 'crops', 'plantings', 'harvests'];
+if (!in_array($m, $allowed, true)) { http_response_code(404); exit('Module not found.'); }
+$cfg = require __DIR__ . '/modules/' . $m . '.php';
+$pdo = db(); $pk = $cfg['pk']; $table = $cfg['table']; $alias = $cfg['alias'];
 $action = $_GET['action'] ?? 'list'; $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT) ?: 0;
 $errors = [];
 
